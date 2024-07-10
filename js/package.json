@@ -25,12 +25,15 @@
     "wrangler": "^3.63.1"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^0.0.36",
     "@cloudflare/workers-types": "github:cloudflare/workers-types",
     "@faker-js/faker": "^8.4.1",
     "@hono/node-server": "^1.12.0",
     "@langchain/core": "^0.2.6",
     "@langchain/openai": "^0.1.2",
+    "ai": "^3.2.18",
     "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
     "enumify": "^2.0.0",
     "hono": "^4.4.11",
     "langchain": "^0.2.5",
