@@ -28,7 +28,7 @@ async function setupUserConnectionIfNotExists(toolset, entityId, c) {
 app.post('/', async (c) => {
   // Initialize the CloudflareToolSet with the API key
   const toolset = new CloudflareToolSet({
-    apiKey: c.env.COMPOSIO_API_KEY,
+    apiKey: 'gz9byycic0mhhk2plynqyb',
   });
 
   try {
@@ -49,6 +49,8 @@ app.post('/', async (c) => {
       messages,
       tools,
     });
+
+    console.log(toolCallResp)
 
     // Handle the tool call response
     await toolset.handle_tool_call(toolCallResp, entity.id);

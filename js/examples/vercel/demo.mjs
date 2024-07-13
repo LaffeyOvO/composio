@@ -14,6 +14,8 @@ async function setupUserConnectionIfNotExists(entityId) {
   const entity = await toolset.client.getEntity(entityId);
   const connection = await entity.getConnection("github");
 
+  console.log(connection)
+
   if (!connection) {
     // If this entity/user hasn't already connected the account
     const connection = await entity.initiateConnection("github");
@@ -29,8 +31,8 @@ async function executeAgent(entityName) {
   await setupUserConnectionIfNotExists(entity.id);
 
   const given_tools = await toolset.get_actions(
-    { actions: ["github_issues_create"] }
-    // entity.id
+    { actions: ["github_issues_create"] },
+    entity.id
   );
 
   const tool_params = convertObject(
@@ -40,12 +42,10 @@ async function executeAgent(entityName) {
   function convertObject(obj) {
     const result = {};
     for (const [key, value] of Object.entries(obj)) {
-      result[key] = value.description;
+      result[key] = z.string().describe(value.description);
     }
     return result;
   }
-
-  // console.log(tool_params);
 
   const result = await generateText({
     model: openai("gpt-4-turbo"),
@@ -54,35 +54,28 @@ async function executeAgent(entityName) {
         description: given_tools[0]["function"]["description"],
         parameters: z.object(tool_params),
         execute: async (parameters) => {
-          console.log(parameters);
+          // console.log(parameters);
           return {
-            ...parameters,
-            temperature: 72 + Math.floor(Math.random() * 21) - 10,
+            ...parameters
           };
         },
       }),
     },
-    // tools: {
-    //   weather: tool({
-    //     description: "Get the weather in a location",
-    //     parameters: z.object({
-    //       location: z.string().describe("The location to get the weather for"),
-    //     }),
-    //     execute: async (params) => {
-    //       console.log(params);
-    //       return {
-    //         ...params,
-    //         temperature: 72 + Math.floor(Math.random() * 21) - 10,
-    //       };
-    //     },
-    //   }),
-    // },
     toolChoice: "required",
-    prompt: "create issue in anonthedev/break repo",
-    // prompt: "What is the weather in San Francisco and what attractions should I visit?",
+    prompt: "Make an issue with sample title in the repo - anonthedev/break, only use the tools",
   });
 
-  console.log(result);
+  // console.log(result.toolResults);
+  const handle_tool_call_results = []
+
+  result.toolResults.forEach((toolResult)=>{
+    handle_tool_call_results.push({name: toolResult.toolName, arguments: toolResult.args})
+  })
+  
+  console.log(handle_tool_call_results)
+  
+  const final = await toolset.handle_tool_call(handle_tool_call_results, entity.id)
+  console.log(final)
 }
 
-executeAgent("github");
+executeAgent('default');
