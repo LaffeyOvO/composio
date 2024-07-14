@@ -20,6 +20,8 @@ import dotenv from "dotenv";
 
  <CodeGroup>
       ```typescript Define method to let user connect their Google account
+dotenv.config();
+
 const toolset = new VercelAIToolSet({
         apiKey: process.env.COMPOSIO_API_KEY,
 });
