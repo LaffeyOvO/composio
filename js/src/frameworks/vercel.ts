@@ -1,5 +1,6 @@
+import { CoreTool, GenerateTextResult, tool } from "ai";
 import { ComposioToolSet as BaseComposioToolSet } from "../sdk/base.toolset";
-//@ts-ignore
+import { z, ZodString } from "zod";
 
 type Optional<T> = T | null;
 type Sequence<T> = Array<T>;
@@ -20,35 +21,45 @@ export class VercelAIToolSet extends BaseComposioToolSet {
 
   async get_actions(filters: {
     actions: Sequence<string>;
-  }): Promise<Sequence<any>> {
-    return (
-      (await this.client.actions.list({})).items
-        ?.filter((a) => {
-          return filters.actions.includes(a!.name!);
-        })
-        .map((action) => {
-          const formattedSchema: any["function"] = {
-            name: action.name!,
-            description: action.description!,
-            parameters: action.parameters as unknown as {
-              type: "object";
-              properties: {
-                [key: string]: {
-                  type: string;
-                  description?: string;
-                };
+  }): Promise<{ [key: string]: any }> {
+    const result: { [key: string]: any } = {};
+  
+    const actionsList = await this.client.actions.list({});
+    actionsList.items
+      ?.filter((a) => {
+        return filters.actions.includes(a!.name!);
+      })
+      .forEach((action) => {
+        const newProperties: { [key: string]: ZodString } = {};
+        for (const [key, value] of Object.entries(
+          action.parameters?.properties as {
+            [key: string]: {
+              type: string;
+              description?: string;
+              title: string;
+            };
+          }
+        )) {
+          newProperties[key] = z.string().describe(value.description || "");
+        }
+  
+        const finalTool = {
+          [action.name!]: tool({
+            description: action.description,
+            parameters: z.object(newProperties),
+            execute: async (parameters) => {
+              return {
+                ...parameters,
               };
-              required: string[];
             },
-          };
-          const tool: any = {
-            type: "function",
-            function: formattedSchema,
-          };
-          return tool;
-        }) || []
-    );
+          }),
+        };
+        Object.assign(result, finalTool);
+      });
+  
+    return result;
   }
+  
 
   async get_tools(filters: {
     apps: Sequence<string>;
@@ -94,7 +105,6 @@ export class VercelAIToolSet extends BaseComposioToolSet {
     },
     entityId: Optional<string> = null
   ): Promise<string> {
-    console.log(tool);
     return JSON.stringify(
       await this.execute_action(
         tool.name,
@@ -107,19 +117,23 @@ export class VercelAIToolSet extends BaseComposioToolSet {
   }
 
   async handle_tool_call(
-    result: any,
+    result: GenerateTextResult<Record<string, CoreTool>>["toolCalls"],
     entityId: Optional<string> = null
   ): Promise<Sequence<string>> {
+    const handle_tool_call_results: { name: string; arguments: Object }[] = [];
+
+    result.forEach((toolCall) => {
+      handle_tool_call_results.push({
+        name: toolCall.toolName,
+        arguments: toolCall.args,
+      });
+    });
+
     const outputs = [];
-    if (result instanceof ReadableStream) {
-      console.log("readable stream");
-    } else if (!result) {
-      console.log("null");
-    } else if ("tool_calls" in result && Array.isArray(result.tool_calls)) {
-      for (const tool_call of result.tool_calls) {
-        if (tool_call.name) {
-          outputs.push(await this.execute_tool_call(tool_call, entityId));
-        }
+
+    for (const tool_call of handle_tool_call_results) {
+      if (tool_call.name) {
+        outputs.push(await this.execute_tool_call(tool_call, entityId));
       }
     }
     return outputs;
