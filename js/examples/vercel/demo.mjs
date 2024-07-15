@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { VercelAIToolSet } from "composio-core";
+import { VercelAIToolSet } from "../../lib/index.js";
 import dotenv from "dotenv";
 
 dotenv.config();
