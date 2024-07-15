@@ -34,8 +34,6 @@ async function executeAgent(entityName) {
     actions: ["googlesheets_create_google_sheet1"],
   });
 
-  console.log(tools);
-
   // Call generateText with required tools and toolChoice set to required.
   const result = await generateText({
     model: openai("gpt-4-turbo"),
