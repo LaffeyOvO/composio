@@ -25,6 +25,7 @@ setup(
     install_requires=[
         "langchain_core>=0.2.17",
         "composio_langchain==0.3.30",
+        "langgraph",
     ],
     include_package_data=True,
 )
